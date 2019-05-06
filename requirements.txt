@@ -1,3 +1,5 @@
+networkx
+nltk
+oauthlib
 requests
 requests_oauthlib
-networkx
