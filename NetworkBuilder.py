@@ -26,7 +26,7 @@ class NetworkBuilder(object):
 
 def _get_user_ids():
     ret = []
-    with open("data/input/TwitterPoliticos.csv") as f:
+    with open("data/input/TwitterPoliticosSuperReducido.csv") as f:
         reader = csv.reader(f, delimiter=',')
         for row in reader:
             if row[1]:

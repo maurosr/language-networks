@@ -75,7 +75,7 @@ class TwitterScraper(Scraper):
         # urls = re.findall(r"http\S+", text)
         with_no_urls = re.sub(r"http\S+", "", text)
         words = self._tokenizer.tokenize(with_no_urls)
-        return [w.upper() for w in words if w not in self._stop_words]  # + urls
+        return [w.upper() for w in words if w.lower() not in self._stop_words and not re.match(r"^\d+$", w)]  # + urls
 
     @staticmethod
     def _get_tweets_text(r):
