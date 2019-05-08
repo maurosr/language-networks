@@ -62,6 +62,7 @@ class TwitterScraper(Scraper):
         # TODO: pagination
         params = dict(self._base_params)
         params['q'] = 'from:{}'.format(user_id.replace('@', ''))
+        params['tweet_mode'] = 'extended'
         return requests.get(TwitterScraper.SEARCH_URL, params=params, auth=self._auth)
 
     @staticmethod
@@ -70,11 +71,11 @@ class TwitterScraper(Scraper):
                                                 client_secret=CLIENT_SECRET)
 
     def _tokenize(self, text):
-        urls = re.findall(r"http\S+", text)
+        # Let's leave urls out for now
+        # urls = re.findall(r"http\S+", text)
         with_no_urls = re.sub(r"http\S+", "", text)
         words = self._tokenizer.tokenize(with_no_urls)
-        return [w.upper() for w in words if w not in self._stop_words] + urls
-
+        return [w.upper() for w in words if w not in self._stop_words]  # + urls
 
     @staticmethod
     def _get_tweets_text(r):
@@ -86,5 +87,5 @@ class TwitterScraper(Scraper):
             exit(1)
 
         for tweet in jr['statuses']:
-            yield tweet['text']
+            yield tweet['full_text']
 
