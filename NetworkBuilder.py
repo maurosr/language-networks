@@ -1,3 +1,5 @@
+import csv
+
 from TwitterScraper import TwitterScraper
 
 
@@ -17,10 +19,22 @@ class NetworkBuilder(object):
                 f.write(f'{src},{trg},Undirected,{i},{data["weight"]}\n')
 
 
-if __name__ == '__main__':
+def _get_user_ids():
+    ret = []
+    with open("data/input/TwitterPoliticos.csv") as f:
+        reader = csv.reader(f, delimiter=',')
+        for row in reader:
+            if row[1]:
+                ret.append(row[1])
+    return ret
+
+def main():
     output_filename = 'data/language_network.csv'
-    twitter_scraper = TwitterScraper()
+    twitter_scraper = TwitterScraper(_get_user_ids(), base_params={})
     builder = NetworkBuilder(twitter_scraper)
 
     builder.build()
     builder.write_csv(output_filename)
+
+if __name__ == '__main__':
+    main()
