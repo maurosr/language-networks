@@ -1,4 +1,3 @@
-import itertools
 import re
 from collections import Counter
 from multiprocessing.pool import ThreadPool
@@ -60,6 +59,7 @@ class TwitterScraper(Scraper):
         return network
 
     def _make_request(self, user_id):
+        # TODO: pagination
         params = dict(self._base_params)
         params['q'] = 'from:{}'.format(user_id.replace('@', ''))
         return requests.get(TwitterScraper.SEARCH_URL, params=params, auth=self._auth)
