@@ -1,6 +1,5 @@
 import re
 from collections import Counter
-from multiprocessing.pool import ThreadPool
 from nltk.tokenize import RegexpTokenizer
 
 
@@ -27,24 +26,20 @@ class TwitterScraper(Scraper):
     nltk.download('punkt')
     nltk.download('stopwords')
 
-    def __init__(self, user_ids, base_params):
+    def __init__(self, user_ids):
         super().__init__()
         self._tokenizer = RegexpTokenizer(r'\w+')
-        self._base_params = base_params
         self._user_ids = user_ids
         self._auth = OAuth2(CLIENT_ID, TwitterScraper.CLIENT, token=TwitterScraper._authenticate())
         self._stop_words = stopwords.words('spanish')
 
     def scrape(self):
         network = nx.Graph()
-        thread_pool = ThreadPool(processes=1)
-
         words = []
 
-        responses = thread_pool.imap(self._make_request, self._user_ids)
-        for user_id, response in zip(self._user_ids, responses):
+        for user_id in self._user_ids:
             c = Counter()
-            for text in TwitterScraper._get_tweets_text(response):
+            for text in self._get_tweets(user_id):
                 for sentence in nltk.sent_tokenize(text, language='spanish'):
                     for word in self._tokenize(sentence):
                         words.append(word)
@@ -53,17 +48,7 @@ class TwitterScraper(Scraper):
             for user_id_word_pair, weight in c.items():
                 nx.add_path(network, user_id_word_pair, weight=weight)
 
-        thread_pool.close()
-        thread_pool.join()
-
         return network
-
-    def _make_request(self, user_id):
-        # TODO: pagination
-        params = dict(self._base_params)
-        params['q'] = 'from:{}'.format(user_id.replace('@', ''))
-        params['tweet_mode'] = 'extended'
-        return requests.get(TwitterScraper.SEARCH_URL, params=params, auth=self._auth)
 
     @staticmethod
     def _authenticate():
@@ -77,15 +62,35 @@ class TwitterScraper(Scraper):
         words = self._tokenizer.tokenize(with_no_urls)
         return [w.upper() for w in words if w.lower() not in self._stop_words and not re.match(r"^\d+$", w)]  # + urls
 
-    @staticmethod
-    def _get_tweets_text(r):
+    def _get_tweets(self, user_id):
+        res = []
+        url = TwitterScraper.SEARCH_URL
+        params = {
+            'q': 'from:{}'.format(user_id.replace('@', '')),
+            'tweet_mode': 'extended'
+        }
+
+        eot = False
+        while not eot:
+            tweets, next_results_url_tail = self._make_request_and_parse(url, params)
+            res += tweets
+            eot = next_results_url_tail is None or next_results_url_tail == ''
+            url = TwitterScraper.SEARCH_URL + next_results_url_tail + '&tweet_mode=extended'
+            params = None
+
+        return res
+
+    def _make_request_and_parse(self, url, params=None):
+        tweets = []
+
+        r = requests.get(url, params=params, auth=self._auth)
         jr = r.json()
         if 'errors' in jr:
-            print('Hubo un error:')
-            print(r.request.__dict__)
-            print(jr['errors'])
-            exit(1)
+            raise RuntimeError(jr['errors'])
+
+        next_results_url_tail = jr['search_metadata'].get('next_results', '')
 
         for tweet in jr['statuses']:
-            yield tweet['full_text']
+            tweets.append(tweet['full_text'])
 
+        return tweets, next_results_url_tail

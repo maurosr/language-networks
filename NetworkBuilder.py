@@ -12,13 +12,13 @@ class NetworkBuilder(object):
     def build(self):
         self._network = self._scraper.scrape()
 
-    def write_csv(self, dir, name):
-        with open(f'{dir}/{name}_nodes.csv', 'w') as f:
+    def write_csv(self, dirname, name):
+        with open(f'{dirname}/{name}_nodes.csv', 'w') as f:
             f.write('Id,Label,class\n')
             for i, node in enumerate(self._network.nodes):
                 f.write(f'{node},{node},{0 if node.startswith("@") else 1}\n')
 
-        with open(f'{dir}/{name}_edges.csv', 'w') as f:
+        with open(f'{dirname}/{name}_edges.csv', 'w') as f:
             f.write('Source,Target,Type,id,weight\n')
             for i, (src, trg, data) in enumerate(self._network.edges.data()):
                 f.write(f'{src},{trg},Undirected,{i},{data["weight"]}\n')
@@ -37,7 +37,7 @@ def _get_user_ids():
 def main():
     output_dir = 'data'
     output_name = 'language_network'
-    twitter_scraper = TwitterScraper(_get_user_ids(), base_params={})
+    twitter_scraper = TwitterScraper(_get_user_ids())
     builder = NetworkBuilder(twitter_scraper)
 
     builder.build()
